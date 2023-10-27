@@ -1,5 +1,6 @@
 from langchain.embeddings import OpenAIEmbeddings
 import os
+import json
 openai_api_key = os.environ.get('OPENAI_API_KEY')
 embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
 markdown_content = """
@@ -39,9 +40,8 @@ all_splits = text_splitter.split_documents(md_header_splits1)
 
 from langchain.vectorstores import FAISS
 db = FAISS.from_documents(all_splits, embeddings)
-
 retriever = db.as_retriever()
-retriever.get_relevant_documents("Workers compensation")
+#retriever.get_relevant_documents("Workers compensation")
 from langchain.tools import BaseTool, StructuredTool, Tool, tool
 @tool("search", return_direct=True)
 def search_document(query: str) -> str:
@@ -49,7 +49,7 @@ def search_document(query: str) -> str:
     docs = retriever.get_relevant_documents(query)
     return str(docs)
 tools = [search_document]
-memory_key="demo-v6"
+memory_key="demo"
 from langchain.memory import ConversationBufferMemory
 memory = ConversationBufferMemory(memory_key=memory_key, return_messages=True)
 from langchain.agents.openai_functions_agent.base import OpenAIFunctionsAgent
@@ -69,24 +69,44 @@ prompt = OpenAIFunctionsAgent.create_prompt(
 
 from langchain.chat_models import ChatOpenAI
 from langchain.agents.openai_functions_agent.base import OpenAIFunctionsAgent
-llm = ChatOpenAI(temperature = 0, openai_api_key=openai_api_key)
+llm = ChatOpenAI(temperature = 0.4, openai_api_key=openai_api_key)
 
 agent = OpenAIFunctionsAgent(llm=llm, tools=tools, prompt=prompt)
 
 from langchain.agents import AgentExecutor
 agent_executor2 = AgentExecutor(agent=agent,memory=memory, tools=tools,verbose=True)
 
-from fastapi import FastAPI
+from fastapi import FastAPI,Form
 from fastapi import HTTPException
 
 app = FastAPI()
+
+@app.post("/generate_text_input")
+async def generate_text_input(num_inputs: int = Form(...)):
+    input_fields = []
+    
+    for i in range(num_inputs):
+        input_name = f"text_input_{i}"
+        input_fields.append(f'<input type="text" name="{input_name}" placeholder="{input_name}">')
+    
+    input_html = "\n".join(input_fields)
+    
+    return f'<form method="post">{input_html}<input type="submit"></form>'
 
 @app.post("/chat/")
 async def process_text(input_text: str):
     # Perform some processing on the input text (you can replace this with your own logic)
     result = agent_executor2({"input": input_text})
-    
-    # Return the processed text
-    return {"processed_text": result["output"]}
+    output = result['output']
+    # if not isinstance(output, str):
+    #     try:
+    #         processed_text_dict = json.loads(output)
+    #         print("Parsed JSON content:", output)
+    #         return {'json data' :processed_text_dict }
+    #     except json.JSONDecodeError as e:
+    #         return {'error': e}
+    #         print("processed_text is not valid JSON, it's a plain string:", processed_text)
+    # else:
+    return {"output": output}
 
 
