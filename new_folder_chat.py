@@ -42,7 +42,7 @@ from langchain.chat_models import ChatOpenAI
 from langchain.chains import RetrievalQA
 
 from langchain.agents.openai_functions_agent.base import OpenAIFunctionsAgent
-openai_api_key = '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'
+openai_api_key = os.environ.get('OPENAI_API_KEY')
 embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
 
 from langchain.tools import BaseTool, StructuredTool, Tool, tool
