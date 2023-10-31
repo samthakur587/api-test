@@ -18,4 +18,4 @@ EXPOSE 80
 # Define environment variable
 
 # Run app.py when the container launches
-CMD ["uvicorn", "test:app", "--host", "0.0.0.0", "--port", "80"]
+CMD ["uvicorn", "new_folder_chat:app", "--host", "0.0.0.0", "--port", "80"]
